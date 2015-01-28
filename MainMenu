@@ -1,0 +1,43 @@
+
+/**
+ * Class that pauses the game between rounds
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+public class WaitRepaint implements Runnable
+{	
+	/**
+	 * The panel the game is running on
+	 */
+	private Panel gamePanel;
+	
+	/**
+	 * Constructor that gets a reference
+	 * to the game that is running
+	 * @param panel
+	 */
+	public WaitRepaint(Panel panel)
+	{
+		gamePanel = panel;
+	}
+	
+	/**
+	 * Stops the user from shooting, waits a few seconds
+	 * and then starts the next round
+	 */
+	public void run()
+	{
+		gamePanel.setCanShoot(false);
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// After some time let the user shoot and
+		// start the next round
+		gamePanel.nextRound();
+		gamePanel.setCanShoot(true);
+	}
+}
