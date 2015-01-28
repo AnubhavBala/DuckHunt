@@ -1,0 +1,414 @@
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+
+/**
+ *
+ * This is the panel containing the clay pigeons for the clay pigeon mode
+ *
+ * @author Eli P, Anu B, and Luka Z
+ *
+ */
+@SuppressWarnings("serial")
+public class ClayPanel extends JPanel implements Panel, MouseListener,
+MouseMotionListener {
+    /**
+     * list of currently executed clay pigeon objects
+     */
+    private ArrayList<Clay> clay;
+    /**
+     * number of clay pigeons per round
+     */
+    private final int numClays;
+    /**
+     * integer corresponding to random background image generated
+     */
+    private int background;
+    /**
+     * background image
+     */
+    private Icon backgroundImage;
+    /**
+     * position of cross hairs
+     */
+    private Dimension crossHairPosition;
+    /**
+     * maximum x and y coordinates
+     */
+    private int XMAX = 800, YMAX = 600;
+    /**
+     * executor to run clay pigeon threads
+     */
+    private ExecutorService executor;
+    /**
+     * shot sound
+     */
+    private Sound shot = new Sound("Soundbytes/Shot.wav");
+    /**
+     * frame object used to close and open other modes
+     */
+    private Frame gameFrame;
+    /**
+     * scoring class used to keep track of bullets, amount of ducks left, time
+     * left and all other information relating to running and scoring the game
+     */
+    private PlayerScorer gameRunner;
+    /**
+     * timing classes used to set the amount of time each round takes
+     */
+    private TimeControl[] controller;
+    /**
+     * boolean to indicate whether the game is over
+     */
+    private boolean over;
+    /**
+     * number of rounds in the game
+     */
+    private final int numRounds = 10;
+    /**
+     * current round (minus one for use as index in arrays)
+     */
+    private int round;
+    /**
+     * font variable to keep constant fonts
+     */
+    private Font font;
+    /**
+     * clay pigeon sprite images
+     */
+    
+    /**
+     * Can the player shoot
+     */
+    private boolean canShoot = true;
+    
+    /**
+     * List of the images
+     */
+    private final ImageIcon[] claySprites = {
+    new ImageIcon("Sprites/Duck/ClayPidgeon1.png"),
+    new ImageIcon("Sprites/Duck/ClayPidgeon2.png"),
+    new ImageIcon("Sprites/Duck/ClayPidgeon3.png"),
+    new ImageIcon("Sprites/Duck/ClayPidgeon4.png"),
+    new ImageIcon("Sprites/Duck/ClayPidgeonBoom.png") };
+    
+    /**
+     * cross hair sprite image
+     */
+    private final Sprite crossHairSprite = new Sprite(
+                                                      "Sprites/Duck/CrossHairs.png");
+    
+    /**
+     * constructs the clay pigeon panel for the user to play and interact with
+     * the clay pigeon part of the game
+     *
+     * @param clayAmount
+     *            amount of clay ducks
+     * @param frame
+     *            parent frame class
+     */
+    public ClayPanel(int clayAmount, Frame frame) {
+        // Initialize the properties of the game
+        font = new Font("Century Gothic Bold Italic", Font.BOLD, 20);
+        round = 0;
+        over = false;
+        numClays = clayAmount;
+        gameRunner = new PlayerScorer((Panel) this, numClays);
+        gameFrame = frame;
+        clay = new ArrayList<Clay>(20);
+        setSize(XMAX, YMAX);
+        executor = Executors.newCachedThreadPool();
+        controller = new TimeControl[10];
+        
+        // generate a random number to get a random background
+        background = (int) (Math.random() * 6);
+        
+        // Display the correct background
+        if (background == 0) {
+            backgroundImage = new ImageIcon("Sprites/Background/Background.png");
+        } else if (background == 1) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background2.png");
+        } else if (background == 2) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background3.png");
+        } else if (background == 3) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background4.png");
+        } else if (background == 4) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background5.png");
+        } else {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background6.png");
+        }
+        
+        // Create timers for each round
+        for (int i = 0; i < numRounds; i++)
+            controller[i] = new TimeControl(i, gameRunner, 3000);
+        
+        // Create the clay pigeons
+        for (int i = 0; i < numClays; i++) {
+            clay.add(new Clay(this));
+            executor.execute(clay.get(i));
+        }
+        
+        // Add listeners for shooting and set the cursor initial properties
+        addMouseListener(this);
+        addMouseMotionListener(this);
+        crossHairPosition = new Dimension(getWidth() / 2, getHeight() / 2);
+        executor.execute(controller[round]);
+        BufferedImage cursor = new BufferedImage(16, 16,
+                                                 BufferedImage.TYPE_INT_ARGB);
+        Cursor blank = Toolkit.getDefaultToolkit().createCustomCursor(cursor,
+                                                                      new Point(0, 0), "Empty Cursor");
+        setCursor(blank);
+    }
+    
+    /**
+     * paints background and clay graphics getting current location from clay
+     * objects
+     */
+    public void paintComponent(Graphics g) {
+        // First display background and status of game
+        g.setFont(font);
+        if (background < 3)
+            g.setColor(Color.BLACK);
+        else
+            g.setColor(Color.white);
+        backgroundImage.paintIcon(this, g, 0, 0);
+        g.drawString("Round: " + String.valueOf(round + 1), 10, 25);
+        g.drawString("Score: " + String.valueOf(gameRunner.getScore())
+                     + " Mulitplier: " + String.valueOf(gameRunner.getMultiplier()),
+                     500, 25);
+        g.drawString(
+                     "Bullets Left: " + String.valueOf(gameRunner.getNumBullets()),
+                     600, 575);
+        g.drawString("Timer:" + String.valueOf(controller[round].getTime()),
+                     10, 575);
+        
+        if (!canShoot) {
+            g.drawString("Next Round Starting..", getWidth() / 2 - 100,
+                         getHeight() / 2);
+        }
+        
+        // Now display the clay pigeons
+        for (Clay c: clay) {
+            if (c.alive()) {
+                if (c.getCounter() == 1) {
+                    Icon R = claySprites[0];
+                    R.paintIcon(this, g, c.getX(), c.getY());
+                } else if (c.getCounter() == 2) {
+                    Icon R = claySprites[1];
+                    R.paintIcon(this, g, c.getX(), c.getY());
+                } else if (c.getCounter() == 3) {
+                    Icon R = claySprites[2];
+                    R.paintIcon(this, g, c.getX(), c.getY());
+                } else {
+                    Icon R = claySprites[3];
+                    R.paintIcon(this, g, c.getX(), c.getY());
+                }
+            } else {
+                Icon R = new ImageIcon("Sprites/Duck/ClayPidgeonBoom.png");
+                R.paintIcon(this, g, c.getX(), c.getY());
+            }
+        }
+        
+        // finally display the crosshairs
+        crossHairSprite.getIcon().paintIcon(this, g,
+                                            (int) crossHairPosition.getWidth(),
+                                            (int) crossHairPosition.getHeight());
+    }
+    
+    /**
+     * clicked to shoot gun, sends click to all clay pigeons
+     *
+     * @param e
+     *            mouse event containing click location
+     */
+    public void gunShot(MouseEvent e) {
+        if (!over) {
+            for (Clay c: clay) {
+                // execute the gunshot on every clay which checks if it gets hit
+                c.gunShot(e);
+            }
+            
+            gameRunner.shotGun();
+            
+            executor.execute(shot);
+            
+        }
+        
+    }
+    
+    /**
+     *
+     * @param c
+     *            current clay pigeon
+     * @return image width of the current picture
+     */
+    public int getImageWidth(Clay c) {
+        return (c.alive() ? claySprites[0].getIconWidth() : claySprites[1]
+                .getIconWidth());
+    }
+    
+    /**
+     *
+     * @param c
+     *            current clay pigeon
+     * @return image height of the current picture
+     */
+    public int getImageHeight(Clay c) {
+        return (c.alive() ? claySprites[0].getIconHeight() : claySprites[1]
+                .getIconHeight());
+    }
+    
+    /**
+     * method invoked by clay pigeon to indicate that one was hit, sends this to
+     * the scorer
+     */
+    public void hitDuck() {
+        gameRunner.hitDuck();
+    }
+    
+    /**
+     * method to set up game for the next round
+     */
+    public void nextRound() {
+        
+        // Shutdown the threads and start a new one
+        executor.shutdown();
+        executor = Executors.newCachedThreadPool();
+        
+        // generate a random number to get a random background
+        background = (int) (Math.random() * 6);
+        
+        // Display the correct background
+        if (background == 0) {
+            backgroundImage = new ImageIcon("Sprites/Background/Background.png");
+        } else if (background == 1) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background2.png");
+        } else if (background == 2) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background3.png");
+        } else if (background == 3) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background4.png");
+        } else if (background == 4) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background5.png");
+        } else {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background6.png");
+        }
+        
+        // Increment the round, start the next timer, and create new clay pigeons
+        round++;
+        executor.execute(controller[round]);
+        
+        clay.clear();
+        
+        for (int i = 0; i < numClays; i++)
+            clay.add(new Clay(this));
+        for (int i = 0; i < numClays; i++)
+            executor.execute(clay.get(i));
+        
+    }
+    
+    /**
+     * method to end clay pigeon game
+     */
+    public void gameOver() {
+        gameFrame.closePanels();
+        gameFrame.openGameOver(gameRunner);
+        
+        over = true;
+    }
+    
+    /**
+     * Sets whether the user can shoot
+     */
+    public void setCanShoot(boolean s) {
+        canShoot = s;
+    }
+    
+    /**
+     * resets cross hair position with new mouse location
+     */
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        crossHairPosition.setSize((int) e.getX() - crossHairSprite.getWidth()
+                                  / 2, (int) e.getY() - crossHairSprite.getHeight() / 2);
+    }
+    
+    /**
+     * shoots gun at mouse event location
+     */
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (canShoot) {
+            gunShot(e);
+        }
+    }
+    
+    /**
+     * Not used MouseEvent method
+     */
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    /**
+     * Not used MouseEvent method
+     */
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    /**
+     * Not used MouseEvent method
+     */
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    /**
+     * Not used MouseEvent method
+     */
+    @Override
+    public void mouseExited(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    /**
+     * Not used MouseEvent method
+     */
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+}
