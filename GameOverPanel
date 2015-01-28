@@ -1,0 +1,164 @@
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+/**
+ * Game over Screen
+ * @author Anu B. Luka Z. Eli P
+ *
+ */
+@SuppressWarnings("serial")
+public class GameOverPanel extends JPanel implements MouseListener {
+    /**
+     * Frame that contains the panel
+     */
+    private Frame gameFrame;
+    /**
+     * Game over screen
+     */
+    private Icon gameOverScreen;
+    /**
+     * Holds the final score
+     */
+    private PlayerScorer gameRunner;
+    /**
+     * Letters for high score list
+     */
+    private char firstLetter, secondLetter, thirdLetter;
+    /**
+     * Combination of the letters
+     */
+    private String name;
+    /**
+     * Constructor to set up the screen
+     * @param frame: Frame that holds the panel
+     * @param game: game information
+     */
+    public GameOverPanel(Frame frame, PlayerScorer game){
+    	// Initialize the display and get other necessary properties
+        firstLetter = 'A';
+        secondLetter = 'A';
+        thirdLetter = 'A';
+        gameRunner=game;
+        gameOverScreen = new ImageIcon("Sprites/Background/GameOver.png");
+        gameFrame = frame;
+        
+        // Add a mouse listener
+        addMouseListener(this);
+        
+    }
+    /**
+     * Paints the screen
+     */
+    public void paintComponent(Graphics g) {
+    	// Paint the unchangeable parts of the screen
+        Font font = new Font("Century Gothic Bold Italic", Font.BOLD, 40);
+        g.setFont(font);
+        g.setColor(Color.YELLOW);
+        gameOverScreen.paintIcon(this, g, 0, 0);
+        g.drawString("Final Score: " + String.valueOf(gameRunner.getScore()), 150, 150);
+        g.drawString("Enter your name: ", 150, 225);
+        
+        // Paint all of input characters which change
+        g.setFont(new Font("Century Gothic Bold Italic", Font.BOLD, 80));
+        g.drawString(Character.toString(firstLetter), 150, 350);
+        g.drawString(Character.toString(secondLetter), 250, 350);
+        g.drawString(Character.toString(thirdLetter), 350, 350);
+    }
+    /**
+     * Changes the letter based mouse click or closes the panel
+     */
+    public void mousePressed(MouseEvent e) {
+        int x = e.getX();
+        int y = e.getY();
+        
+        // Check if mouse pressed in Main Menu Button
+        // If so open the high scores screen and send it
+        // the inputted characters
+        if (x >= 145 && x <= 501) {
+            if (y >= 423 && y <= 462) {
+                name = "";
+                name = name + firstLetter + secondLetter + thirdLetter;
+                gameFrame.closePanels();
+                gameFrame.openHighScores(true, name, gameRunner.getScore());
+            }
+        }
+
+        // Check for editing the first letter
+        if (x>150 && x<210)
+        {
+            if(y >290 && y <355)
+            {
+            	// Increment the letter
+                firstLetter++;
+                if((int) firstLetter > (int) 'Z')
+                {
+                    firstLetter = 'A';
+                }
+            }
+        }
+        
+        // Check for editing the second letter
+        if(x>250 && x<310)
+        {
+            if(y >290 && y <355)
+            {
+            	// Increment the letter
+                secondLetter++;
+                if((int) secondLetter > (int) 'Z')
+                {
+                    secondLetter = 'A';
+                }
+            }
+        }
+        
+        // Check for editing the third letter
+        if(x>350 && x<410)
+        {
+            if(y >290 && y <355)
+            {
+            	// Increment the third letter
+                thirdLetter++;
+                if((int) thirdLetter > (int) 'Z')
+                {
+                    thirdLetter = 'A';
+                }
+            }
+        }
+        
+    }
+    /**
+	 * Unimplemented Mouse Listener
+	 */
+    @Override
+    public void mouseClicked(MouseEvent e) {
+    }
+    /**
+	 * Unimplemented Mouse Listener
+	 */
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+    /**
+	 * Unimplemented Mouse Listener
+	 */ 
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+    /**
+	 * Unimplemented Mouse Listener
+	 */
+    @Override
+    public void mouseReleased(MouseEvent e) {
+    }
+	/**
+	 * Returns the name
+	 */
+    public String getName()
+    {
+    	return name;
+    }
+}
