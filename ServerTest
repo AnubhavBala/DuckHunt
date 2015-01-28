@@ -1,0 +1,329 @@
+import java.awt.BorderLayout;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Scanner;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+
+
+/**
+ * The Server side of the file modification program.
+ * Waits for a client connection and sets up streams for communications.
+ * Provides a simple GUI and allows for file retrieval, reading, and writing.
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+@SuppressWarnings("serial")
+public class DuckHuntServer extends JFrame
+{
+	/**
+	 * The name of the high scores file
+	 */
+	private String fileName = new String("HighScores.txt");
+	
+	/**
+	 * The contents of the retrieved file
+	 */
+	private String [][] highScores;
+	
+	/**
+	 * An array of the integer scores
+	 */
+	private int [] scores;
+	
+	/**
+	 * The number of high scores
+	 */
+	private final int numberOfScores = 3;
+	
+	/**
+	 * The input from the client side
+	 */
+	private int inputScore;
+	
+	/**
+	 * A JLabel for the GUI
+	 */
+	private JLabel nameLabel;
+	
+	/**
+	 * The ServerSocket the client connects to
+	 */
+	private ServerSocket server;
+	
+	/**
+	 * The connection between the client and server
+	 */
+	private Socket connection;
+	
+	/**
+	 * The stream the server sends data to the client through
+	 */
+	private ObjectOutputStream output;
+	
+	/**
+	 * The stream the server gets data from the client through
+	 */
+	private ObjectInputStream input;
+	
+	/**
+	 * The high scores file being read from or written to
+	 */
+	private File file;
+	
+	/**
+	 * A Scanner for reading the high scores file
+	 */
+	private Scanner fileInput;
+	
+	/**
+	 * Constructor that sets up the server's GUI
+	 */
+	public DuckHuntServer()
+	{
+		// Set up GUI
+		super("Duck Hunt Server");
+		nameLabel = new JLabel("Duck Hunt Server");
+		nameLabel.setHorizontalAlignment(JLabel.CENTER);
+				
+		add(nameLabel, BorderLayout.CENTER);
+		
+		// Get the file
+		file = new File("HighScores/HighScores.txt");
+		highScores = new String [numberOfScores][2];
+		scores = new int [numberOfScores];
+	}
+	
+	/**
+	 * Gets the file's name
+	 * @return the file name
+	 */
+	public String getFileName()
+	{
+		return fileName;
+	}
+	
+	/**
+	 * Starts the server, waits for a connection from a client, then waits
+	 * for any input from the client for processing a file name or content
+	 */
+	public void startServer()
+	{
+		try
+		{
+			// Set up the server port and only allow one client
+			server = new ServerSocket(23555, 1);
+			
+			// Allow the server to connect until the application is closed
+			while(true)
+			{
+				try
+				{
+					// Wait for a connection that create the streams
+					connection = server.accept();
+				
+					output = new ObjectOutputStream(connection.getOutputStream());
+					output.flush();
+				
+					input = new ObjectInputStream(connection.getInputStream());
+					
+					// After a connection is established maintain the connection until
+					// it is terminated
+					while(true)
+					{
+						try 
+						{
+							// Get score and name from client
+							inputScore = (int) input.readObject();
+							String name = (String) input.readObject();
+							
+							// Determine whether the client is requesting the scores or submitting a score
+							// -1 means requesting score
+							// Positive integer or 0 is client submitting score
+							if(inputScore < 0)
+							{
+								// Send high scores to client
+								sendScores();
+							}
+							else
+							{
+								// Write the high score to the high scores file if it beats one of the scores
+								if(newHighScore(inputScore, name))
+								{
+									writeToHighScores();
+								}
+								sendScores();
+							}
+						} 
+						catch (ClassNotFoundException e) 
+						{
+							System.out.println("Couldn't get data from client");
+						}
+					}
+				}
+				catch (EOFException eofException)
+				{
+					//System.out.println("Client Quit");
+				}
+				finally
+				{
+					input.close();
+					output.close();
+					connection.close();
+				}
+				
+			}
+		}
+		catch(IOException ioException)
+		{
+			System.out.println("Cannot establish port");
+		}
+	}
+	
+	/**
+	 * Reads from a file then writes the data from it to the stream
+	 * which goes to the client, will tell the client if the file is not found
+	 */
+	public void sendScores()
+	{
+		// Get the client requested file and set up a contents variable
+		if(file.exists())
+		{
+			try 
+			{
+				// Read the entire file line by line (Name is first line, score is next line)
+				fileInput = new Scanner(file);
+				retrieveScores(true);
+				fileInput.close();
+			} 
+			catch (FileNotFoundException e) 
+			{
+				retrieveScores(false);
+			}
+		}
+		else
+		{
+			retrieveScores(false);
+		}
+		try 
+		{
+			// Write either the file contents or the error message
+			output.writeObject(highScores);
+			output.flush();
+		} 
+		catch (IOException e) 
+		{
+			System.out.println("Couldn't send data to client");
+		}
+	}
+	
+	/**
+	 * Reads the scores from the high scores file
+	 * @param fileFound whether the file exists
+	 */
+	private void retrieveScores(boolean fileFound)
+	{
+		// Loop through each line and store it in the
+		// high scores array
+		if(fileFound)
+		{
+			for(int i = 0; i < numberOfScores; i++)
+			{
+				for(int j = 0; j < 2; j++)
+				{
+					highScores[i][j] = fileInput.nextLine();
+				}
+				scores[i] = Integer.parseInt(highScores[i][1]);
+			}
+		}
+		
+		// If the file isn't found just pass question marks
+		else
+		{
+			for(int i = 0; i < numberOfScores; i++)
+			{
+				for(int j = 0; j < 2; j++)
+				{
+					highScores[i][j] = "???";
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Writes the high scores to the file
+	 * to retrieve for another time
+	 */
+	public void writeToHighScores()
+	{
+		// FileWriter object for writing to the file
+		FileWriter fileOutput;
+		try
+		{
+			// Write to the file or create a new one then close the fileWriter
+			fileOutput = new FileWriter(file);
+			fileOutput.flush();
+			
+			for(int i = 0; i < numberOfScores; i++)
+			{
+				for(int j = 0; j < 2; j++)
+				{
+					fileOutput.write(highScores[i][j]);
+					
+					// Separate the names and scores by line but don't add a newline to the end
+					if(i != numberOfScores - 1 || j != 1)
+					{
+						fileOutput.write('\n');
+					}
+				}
+			}
+			fileOutput.close();
+		} 
+		catch (IOException e1) 
+		{
+			System.out.println("Couldn't write to file");
+		}
+	}
+	
+	/**
+	 * Determines the new high score array based on the new
+	 * score provided by the client
+	 * @param newScore the new score to compare with previous scores
+	 * @param newName the new name that accompanies the score
+	 * @return
+	 */
+	public boolean newHighScore(int newScore, String newName)
+	{
+		// Loop until we find the highest score
+		for(int i = 0; i < scores.length; i++)
+		{
+			if(newScore > scores[i])
+			{
+				int nextScore = 0;
+				String nextName;
+				
+				// Bump all other scores down
+				for(; i < scores.length; i++)
+				{
+					nextScore = scores[i];
+					scores[i] = newScore;
+					nextName = highScores[i][0];
+					highScores[i][0] = newName;
+					highScores[i][1] = Integer.toString(newScore);
+					newScore = nextScore;
+					newName = nextName;
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+}
