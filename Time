@@ -1,0 +1,68 @@
+/**
+ * Time control class for timed games
+ * that determines whether a game time is up.
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+public class TimeControl implements Runnable {
+
+	/**
+	 * The timer amount
+	 */
+	private  int waitTime;
+	
+	/**
+	 * The round number of the game
+	 */
+	private final int roundNum;
+	
+	/**
+	 * The scorer that keeps track of the game score
+	 */
+	private PlayerScorer scorer;
+
+	/**
+	 * Constructor that sets up the round number, scorer, and time period
+	 * @param roundNum the round of the game
+	 * @param scorer the scorer for the game
+	 * @param waitTime the time amount
+	 */
+	public TimeControl(int roundNum, PlayerScorer scorer, int waitTime) 
+	{
+		this.roundNum = roundNum;
+		this.scorer = scorer;
+		this.waitTime = waitTime/1000;
+	}
+
+	/**
+	 * Thread that decrements the time by approximately 1 second
+	 */
+	@Override
+	public synchronized void run() {
+		// TODO Auto-generated method stub
+		while(waitTime > 0)
+		{
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Decrement by a second
+			waitTime--;
+		}
+		// Tell the scorer the time is out if the game isn't already over
+		if(!scorer.getGameOverStatus())
+            scorer.timedOut(roundNum);
+
+	}
+	
+	/**
+	 * Gets the time of the round
+	 * @return the time in seconds
+	 */
+	public int getTime()
+	{
+		return waitTime;
+	}
+}
