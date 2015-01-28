@@ -1,0 +1,20 @@
+/**
+ * Interface for all panels to use
+ * @author Anu B. Luka Z. Eli P
+ *
+ */
+public interface Panel {
+	/**
+	 * Abstract method for the gameOver method
+	 */
+	public void gameOver();
+	/**
+	 * Abstract method for the nextRound method
+	 */
+	public void nextRound();
+	
+	/**
+	 * Sets whether the player can shoot
+	 */
+	public void setCanShoot(boolean s);
+}
