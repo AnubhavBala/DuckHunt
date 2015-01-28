@@ -1,0 +1,189 @@
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+
+public class PlayerScorer{
+	/**
+	 * The number of rounds in a game
+	 */
+    private final int numRounds = 10;
+    
+    /**
+     * The amount of points rewarded
+     */
+    private final int pointReward = 10;
+    
+    /**
+     * The bullets per round
+     */
+    private final int bulletsPerRound = 3;
+    
+    /**
+     * The score, current round, and multiplier
+     */
+    private int score, round, streakMultiplier;
+    
+    /**
+     * The bullets and ducks
+     */
+    private int [] bullets, ducks;
+    
+    /**
+     * Whether a duck is hit
+     */
+    private boolean hitDuck;
+    
+    /**
+     * The game panel
+     */
+    private Panel panel;
+    
+    /**
+     * Whether the game is over
+     */
+    private boolean gameOver=false;
+    
+    /**
+     * The executor
+     */
+    private ExecutorService executor;
+    
+    /**
+     * The end of round waiter
+     */
+    private WaitRepaint waiter;
+    
+    /**
+     * Constructor the initiates the game scoring
+     * @param panel the game panel
+     * @param numDucks the number of ducks or clay pigeons
+     */
+    public PlayerScorer(Panel panel, int numDucks)
+    {
+    	// set up of initial values
+    	executor = Executors.newCachedThreadPool();
+    	hitDuck = false;
+        this.panel = panel;
+        streakMultiplier = 1;
+        score = 0;
+        round = 0;
+        bullets = new int [numRounds];
+        ducks = new int [numRounds];
+
+        // set up the bullets and ducks for each round
+        for(int i = 0; i < numRounds; i++)
+        {
+            bullets[i] = bulletsPerRound;
+            ducks[i] = numDucks;
+        }
+        
+        
+    }
+    
+    /**
+     * Awards points based on duck hit and multiplier
+     */
+    public void hitDuck()
+    {
+        score += pointReward * streakMultiplier;
+        hitDuck = true;
+        
+        // Decrement the amount of ducks
+        ducks[round]--;
+    }
+    
+    /**
+     * Executes when gun is shot and adjust bullet amount
+     */
+    public void shotGun()
+    {
+        bullets[round]--;
+        
+        // Adjust the multiplier based on a streak of kills
+        if (hitDuck)
+            streakMultiplier++;
+        else
+            streakMultiplier = 1;
+        
+        hitDuck = false;
+        
+        // If run out of bullets or ducks end the round
+        if (bullets[round] <= 0 || ducks[round] <= 0)
+            endRound();
+    }
+    /**
+     * Gets the round number
+     * @return the round
+     */
+    public int getRound()
+    {
+        return round;
+    }
+    
+    /**
+     * Ends the round and waits before executing the next round
+     */
+    private void endRound()
+    {
+    	// If the game is over end the game
+        if (round == numRounds - 1)
+        {
+        	gameOver=true;
+            panel.gameOver();
+        }
+        else
+        {
+        	// Create a waiter that will delay the start of the next
+        	// round but will also continue repainting
+        	waiter = new WaitRepaint(panel);
+        	executor.execute(waiter);
+            round++;
+            hitDuck = false;
+        }
+    }
+    /**
+     * Gets the score
+     * @return the score
+     */
+    public int getScore()
+    {
+        return score;
+    }
+    
+    /**
+     * Gets the multiplier
+     * @return the multiplier
+     */
+    public int getMultiplier()
+    {
+        return streakMultiplier;
+    }
+    
+    /**
+     * Gets the number of bullets
+     * @return the number of bullets
+     */
+    public int getNumBullets()
+    {
+        return bullets[round];
+    }
+    
+    /**
+     * Activates when timer is out, and ends the round
+     * @param roundNum the number of rounds
+     */
+    public void timedOut(int roundNum)
+    {
+    	if (roundNum == round)
+    		endRound();
+    }
+    
+    /**
+     * Gets whether the game is over or not
+     * @return the game over status
+     */
+    public boolean getGameOverStatus()
+    {
+    	return gameOver;
+    }
+}
