@@ -1,0 +1,380 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+/**
+ * The high score screen that retrieves scores from the server
+ * and displays them to the user
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+@SuppressWarnings("serial")
+public class HighScoresPanel extends JPanel implements MouseListener
+{
+	/**
+	 * The stream the client sends data to the server through
+	 */
+	private ObjectOutputStream output;
+	
+	/**
+	 * The stream the client receives data from the server through
+	 */
+	private ObjectInputStream input;
+	
+	/**
+	 * The socket that the client and server connect at
+	 */
+	private Socket connection;
+	
+	/**
+	 * The IP that the client connects to
+	 * must be edited to connect to other computers
+	 */
+	private String connectionIP = new String("127.0.0.1");
+	
+	/**
+	 * The multi-dimensional array of scores and names
+	 */
+	private String [][] highScores;
+	
+	/**
+	 * The main game frame
+	 */
+	private Frame gameFrame;
+	
+	/**
+	 * The top left location of the go to menu button
+	 */
+	private final Dimension menuButtonTopLeft = new Dimension(195,500);
+	
+	/**
+	 * The top bottom right location of the go to menu button
+	 */
+	private final Dimension menuButtonBottomRight = new Dimension(600,550);
+	
+	/**
+	 * Variable that tells whether a score is a being submitted
+	 */
+	private boolean submittingScore;
+	
+	/**
+	 * The new score to submit to high scores
+	 */
+	private int newScore = 0;
+	
+	/**
+	 * The new name to submit to high scores
+	 */
+	private String nameToSubmit;
+	
+	/**
+	 * JLabel for the top score name
+	 */
+	private JLabel topHighScoreName;
+	
+	/**
+	 * JLabel for the top score
+	 */
+	private JLabel topScore;
+	
+	/**
+	 * JLabel for the second score name
+	 */
+	private JLabel secondHighScoreName;
+	
+	/**
+	 * JLabel for the second score
+	 */
+	private JLabel secondScore;
+	
+	/**
+	 * JLabel for the third score name
+	 */
+	private JLabel thirdHighScoreName;
+	
+	/**
+	 * JLabel for the third score
+	 */
+	private JLabel thirdScore;
+	
+	/**
+	 * JPanel to hold the top score and name
+	 */
+	private JPanel scoresPanel1 = new JPanel();
+	
+	/**
+	 * JPanel to hold the second score and name
+	 */
+	private JPanel scoresPanel2 = new JPanel();
+	
+	/**
+	 * JPanel to hold the third score and name
+	 */
+	private JPanel scoresPanel3 = new JPanel();
+	
+	/**
+	 * Click to continue button
+	 */
+	private JLabel continueOn;
+
+	/**
+	 * Label for the high scores screen
+	 */
+	private JLabel highScoreLabel;
+		
+	/**
+	 * Font for the labels
+	 */
+	private Font font;
+
+	
+	/**
+	 * Constructor that initializes GUI, calls to set up server, and initializes some
+	 * high score screen properties for submitting scores
+	 * @param frame the main game frame
+	 * @param submitScore whether a score is being submitted or not
+	 * @param name the name of the player associated with the score
+	 * @param score the score being submitted
+	 */
+	public HighScoresPanel(Frame frame, boolean submitScore, String name, int score)
+	{
+		// Set up the background and color
+		setBackground(Color.BLACK);
+		setLayout(new GridLayout(5,1,5,5));
+	
+		// Initialize variables for submitting scores
+	    submittingScore = submitScore;
+	    nameToSubmit = name;
+		gameFrame=frame;
+		newScore = score;
+		
+		// Add the mouse listener and setup the server connection
+		addMouseListener(this);
+		setUpServerConnection();		
+	}
+	
+	/**
+	 * Displays the GUIs labels containing text and scores
+	 */
+	public void displayScores()
+	{
+		font = new Font("Century Gothic Bold Italic", Font.BOLD, 30);
+		
+		// The top label 
+		highScoreLabel = new JLabel("HIGH SCORES", JLabel.CENTER);
+		highScoreLabel.setFont(font);
+		highScoreLabel.setForeground(Color.YELLOW);
+		add(highScoreLabel);
+		
+		
+		// The high score names and scores are added to JPanels adjacently
+		topHighScoreName = new JLabel(highScores[0][0]+"   -   ");
+		topHighScoreName.setFont(font);
+		topHighScoreName.setForeground(Color.YELLOW);
+	    
+	    topScore = new JLabel(highScores[0][1]);
+		topScore.setFont(font);
+		topScore.setForeground(Color.YELLOW);
+	    
+	    secondHighScoreName = new JLabel(highScores[1][0]+"   -   ");
+	    secondHighScoreName.setFont(font);
+	    secondHighScoreName.setForeground(Color.YELLOW);
+	    
+	    secondScore = new JLabel(highScores[1][1]);
+	    secondScore.setFont(font);
+	    secondScore.setForeground(Color.YELLOW);
+	    
+	    thirdHighScoreName = new JLabel(highScores[2][0]+"   -   ");
+	    thirdHighScoreName.setFont(font);
+	    thirdHighScoreName.setForeground(Color.YELLOW);
+	    
+	    thirdScore = new JLabel(highScores[2][1]);
+	    thirdScore.setFont(font);
+	    thirdScore.setForeground(Color.YELLOW);
+	    
+	    scoresPanel1.add(topHighScoreName, BorderLayout.WEST);
+	    scoresPanel1.add(topScore, BorderLayout.EAST);
+	    
+	    scoresPanel2.add(secondHighScoreName, BorderLayout.WEST);
+	    scoresPanel2.add(secondScore, BorderLayout.EAST);
+	    
+	    scoresPanel3.add(thirdHighScoreName, BorderLayout.WEST);
+	    scoresPanel3.add(thirdScore, BorderLayout.EAST);
+	    
+	    scoresPanel1.setBackground(Color.BLACK);
+	    scoresPanel2.setBackground(Color.BLACK);
+	    scoresPanel3.setBackground(Color.BLACK);
+	    
+	    // The panels are placed in the grid between the top and bottom labels
+	    add(scoresPanel1);
+	    add(scoresPanel2);
+	    add(scoresPanel3);
+	    
+	    // Bottom label and button for continuing
+	    continueOn = new JLabel("CLICK ME TO CONTINUE", JLabel.CENTER);
+	    continueOn.setFont(font);
+	    continueOn.setForeground(Color.YELLOW);
+	    add(continueOn);
+	}
+	
+	/**
+	 * Mouse press event for the continue button that exits the high score screen
+	 */
+	public void mousePressed(MouseEvent e) 
+	{
+		// Get mouse location
+		int x=e.getX();
+		int y=e.getY();
+		
+		// If the click is within the bounds execute the main menu panel and close this one
+		if(x >= menuButtonTopLeft.getWidth() && x < menuButtonBottomRight.getWidth())
+		{
+			if(y>=menuButtonTopLeft.getHeight() && y < menuButtonBottomRight.getHeight())
+			{
+				gameFrame.closePanels();
+				gameFrame.openMainMenu();
+			}
+		}	
+	}
+	
+	/**
+	 * Sets up a connection to the server, gets the streams,
+	 * and then gets the scores from the server
+	 */
+	public void setUpServerConnection()
+	{
+		try
+		{
+			// Get the streams
+			connection = new Socket(InetAddress.getByName(connectionIP), 23555);
+			
+			output = new ObjectOutputStream(connection.getOutputStream());
+			output.flush();
+			
+			input = new ObjectInputStream(connection.getInputStream());
+			
+			getScoresFromServer();
+			
+		}
+		catch(EOFException eofException)
+		{
+			System.out.println("Connection terminated");
+		}
+		catch(IOException ioException)
+		{
+			System.out.println("Issue with connection");
+			font = new Font("Century Gothic Bold Italic", Font.BOLD, 30);
+			JLabel label = new JLabel("Restart the application after running the server!", JLabel.CENTER);
+			label.setFont(font);
+			label.setForeground(Color.YELLOW);
+			add(label);
+		}
+		finally
+		{
+			try
+			{
+				// Close the streams and connection
+				input.close();
+				output.close();
+				connection.close();
+			}
+			catch (IOException ioException)
+			{
+				System.out.println("Couldn't close connection properly");
+			}
+			catch(NullPointerException npException)
+			{
+				System.out.println("No connection with server");
+			}
+		}
+	}
+	
+	/**
+	 * Gets the scores from the server by first writing
+	 * a score to the server or writing that it only wants
+	 * a score with a -1
+	 */
+	public void getScoresFromServer()
+	{
+		try 
+		{
+			// If a score is being submitted write it
+			if(submittingScore)
+			{
+				output.writeObject(newScore);
+			}
+			
+			// Otherwise just write a -1 indicating we aren't submitting a score
+			else
+			{
+				output.writeObject(-1);
+			}
+			
+			// Write the name of the player submitting the score
+			output.writeObject(nameToSubmit);
+			
+			// Read in the multi-dimensional array of names and scores
+			highScores = (String [][]) input.readObject();
+			displayScores();
+		} 
+		catch (ClassNotFoundException e) 
+		{
+			// TODO Auto-generated catch block
+			System.out.println("Couldn't write or read scores");
+		} 
+		catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			System.out.println("Couldn't write or read scores");
+		}
+	}
+	
+	/**
+	 * Unimplemented mouseListener method
+	 */
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * Unimplemented mouseListener method
+	 */
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * Unimplemented mouseListener method
+	 */
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/**
+	 * Unimplemented mouseListener method
+	 */
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+}
