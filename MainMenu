@@ -1,43 +1,169 @@
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
 
 /**
- * Class that pauses the game between rounds
- * @author Luka Z, Anu B, Eli P
- *
+ * Panel that displays the main menu
+ * 
+ * @author Anu B., Luka Z., Eli P
+ * 
  */
-public class WaitRepaint implements Runnable
-{	
+@SuppressWarnings("serial")
+public class MainMenuPanel extends JPanel implements MouseListener,
+		MouseMotionListener {
 	/**
-	 * The panel the game is running on
+	 * Menu background
 	 */
-	private Panel gamePanel;
-	
+	private Icon menuScreen;
 	/**
-	 * Constructor that gets a reference
-	 * to the game that is running
-	 * @param panel
+	 * Frame that holds the panel
 	 */
-	public WaitRepaint(Panel panel)
-	{
-		gamePanel = panel;
-	}
-	
+	private Frame gameFrame;
 	/**
-	 * Stops the user from shooting, waits a few seconds
-	 * and then starts the next round
+	 * Executor that executes the sound thread
 	 */
-	public void run()
-	{
-		gamePanel.setCanShoot(false);
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	private ExecutorService executor;
+	/**
+	 * Sound effect for the boom noise
+	 */
+	private Sound boom = new Sound("Soundbytes/Boom.wav");
+	/**
+	 * Dimensions of the cross hair picture
+	 */
+	private Dimension crossHairPosition;
+	/**
+	 * Sprite image of the cross hair
+	 */
+	private final Sprite crossHairSprite = new Sprite(
+			"Sprites/Duck/CrossHairs.png");
+
+	/**
+	 * Constructor which update the background and sets up the executor
+	 * 
+	 * @param frame
+	 *            : Frame that contains the panel
+	 */
+	public MainMenuPanel(Frame frame) {
+		// Sets up the frame
+		menuScreen = new ImageIcon("Sprites/Background/Menu.png");
+		gameFrame = frame;
+		addMouseListener(this);
+		addMouseMotionListener(this);
+		crossHairPosition = new Dimension(getWidth() / 2, getHeight() / 2);
+		executor = Executors.newCachedThreadPool();
 		
-		// After some time let the user shoot and
-		// start the next round
-		gamePanel.nextRound();
-		gamePanel.setCanShoot(true);
+		// Set up the crosshairs
+		BufferedImage cursor = new BufferedImage(16, 16,
+				BufferedImage.TYPE_INT_ARGB);
+		Cursor blank = Toolkit.getDefaultToolkit().createCustomCursor(cursor,
+				new Point(0, 0), "Empty Cursor");
+		frame.getContentPane().setCursor(blank);
+	}
+
+	/**
+	 * Paints the screen
+	 */
+	public void paintComponent(Graphics g) {
+		menuScreen.paintIcon(this, g, 0, 0);
+		
+		// Set up the crosshairs and remove the standard cursor
+		crossHairSprite.getIcon().paintIcon(this, g, (int) crossHairPosition.getWidth(), (int) crossHairPosition.getHeight());
+		BufferedImage cursor = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		Cursor blank = Toolkit.getDefaultToolkit().createCustomCursor(cursor,new Point(0, 0), "Empty Cursor");
+		setCursor(blank);
+	}
+
+	/**
+	 * Checks if the mouse is pressed in a certain area to choose the menu
+	 * selection
+	 * @param e Listens for a mouse event
+	 */
+	@Override
+	public void mousePressed(MouseEvent e) {
+		int x = e.getX();
+		int y = e.getY();
+
+		// Check if pressing the play button
+		if (x >= 24 && x < 155) {
+			if (y >= 34 && y < 95) {
+				executor.execute(boom);
+				gameFrame.closePanels();
+				gameFrame.openSelection();
+			}
+		}
+
+		// Check if pressing the high scores button
+		if (x >= 24 && x < 155) {
+			if (y >= 122 && y < 185) {
+				executor.execute(boom);
+				gameFrame.closePanels();
+				gameFrame.openHighScores(false, "", -1);
+			}
+		}
+
+		// Check if pressing the quit button
+		if (x >= 24 && x <= 155) {
+			if (y >= 208 && y <= 276) {
+				executor.execute(boom);
+				gameFrame.quitGame();
+			}
+		}
+
+	}
+
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseClicked(MouseEvent e) {
+	}
+
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseEntered(MouseEvent e) {
+	}
+
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseExited(MouseEvent e) {
+	}
+
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseReleased(MouseEvent e) {
+	}
+
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		crossHairPosition.setSize((int) e.getX() - crossHairSprite.getWidth()
+				/ 2, (int) e.getY() - crossHairSprite.getHeight() / 2);
+
+	}
+
+	/**
+	 * Listens when the mouse moves and sets size for the cross hair
+	 */
+	@Override
+	public void mouseMoved(MouseEvent e) {
+		crossHairPosition.setSize((int) e.getX() - crossHairSprite.getWidth()
+				/ 2, (int) e.getY() - crossHairSprite.getHeight() / 2);
+
 	}
 }
