@@ -1,0 +1,105 @@
+import java.awt.Graphics;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+/**
+ * Selection Screen to choose a game mode: Either from one duck, two ducks, or a clay pigeon mode
+ * @author Anu B., Luka Z, Eli P
+ *
+ */
+@SuppressWarnings("serial")
+public class SelectionScreenPanel extends JPanel implements MouseListener {
+	/**
+	 * Picture used for the selection screen
+	 */
+	private Icon selectionScreen;
+	/**
+	 * Frame that contains the panel
+	 */
+	private Frame gameFrame;
+	/**
+	 * Sets the background image to the selection screen
+	 * @param frame: Frame that holds the panel
+	 */
+	public SelectionScreenPanel(Frame frame) {
+		selectionScreen = new ImageIcon("Sprites/Background/SelectionScreen.png");
+		gameFrame=frame;
+		addMouseListener(this);
+	}
+	/**
+	 * Paints the screen
+	 */
+	public void paintComponent(Graphics g)
+	{
+		selectionScreen.paintIcon(this, g, 0, 0);
+	}
+	/**
+	 * Checks if the mouse is pressed in a certain area to choose the game mode
+	 * @param e: Listens for a mouse event
+	 */
+	@Override
+	
+	public void mousePressed(MouseEvent e) {
+		int x = e.getX();
+		int y = e.getY();
+		
+		// Location of open 1 duck button
+		if(x>=135&&x<490)
+		{
+			if(y>=186&&y<=236)
+			{
+				gameFrame.closePanels();
+				gameFrame.openDuck(1);
+			}
+		}
+		
+		// Location of open 2 ducks button
+		if(x>=135&&x<375)
+		{
+			if(y>=284&&y<=342)
+			{
+				gameFrame.closePanels();
+				gameFrame.openDuck(2);
+			}
+		}
+		
+		// Location of open clay button
+		if(x>=135&&x<660)
+		{
+			if(y>=370&&y<=450)
+			{
+				gameFrame.closePanels();
+				gameFrame.openClay();
+			}
+		}
+		
+	}
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseClicked(MouseEvent e) {
+	}
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseEntered(MouseEvent e) {
+	}
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseExited(MouseEvent e) {
+	}
+	/**
+	 * Unimplemented Mouse Listener
+	 */
+	@Override
+	public void mouseReleased(MouseEvent e) {
+	}
+
+}
