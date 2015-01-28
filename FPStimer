@@ -1,0 +1,51 @@
+/**
+ * Manages the frame rate of the game that is playing.
+ * Runs in parallel to the game and repaints its screen
+ * after a defined amount of time
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+public class FPSTimer implements Runnable
+{
+	/**
+	 * The wait time in milliseconds between repaints
+	 */
+	private int waitTime = 17;
+	
+	/**
+	 * The main frame the games run in
+	 */
+	private Frame gameFrame;
+
+	/**
+	 * Constructor that gets a reference to the main frame
+	 * @param frame the main frame the games are run in
+	 */
+	public FPSTimer(Frame frame) 
+	{
+		gameFrame = frame;
+	}
+
+	/**
+	 * Runs in parallel and repaints the main frame
+	 * after a predefined time
+	 */
+	@Override
+	public void run() {
+		while(waitTime >=0)
+		{
+			try 
+			{
+				Thread.sleep(waitTime);
+			} 
+			catch (InterruptedException e) 
+			{
+				e.printStackTrace();
+			}
+			
+			// Repaint the frame
+			gameFrame.repaint();			
+		}
+
+	}
+}
