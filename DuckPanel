@@ -1,0 +1,603 @@
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+
+/**
+ * The game panel for the duck game modes. Keeps track of an array of ducks and
+ * displays the graphics and current status of the game.
+ *
+ * @author Luka Z, Eli P, Anu B
+ *
+ */
+@SuppressWarnings("serial")
+public class DuckPanel extends JPanel implements Panel, MouseListener,
+MouseMotionListener {
+    /**
+     * The array of duck objects
+     */
+    private ArrayList<Duck> duck;
+    
+    /**
+     * The number of ducks active
+     */
+    private final int numDucks;
+    
+    /**
+     * The current background
+     */
+    private int background;
+    
+    /**
+     * The position of the crosshairs
+     */
+    private Dimension crossHairPosition;
+    
+    /**
+     * The background image
+     */
+    private Icon backgroundImage;
+    
+    /**
+     * The x and y sizes of the screen
+     */
+    private int XMAX = 800, YMAX = 600;
+    
+    /**
+     * The thread executor
+     */
+    private ExecutorService executor;
+    
+    /**
+     * The shot sound
+     */
+    private Sound shot = new Sound("Soundbytes/Shot.wav");
+    
+    /**
+     * The main frame
+     */
+    private Frame gameFrame;
+    
+    /**
+     * The game scorer
+     */
+    private PlayerScorer gameRunner;
+    
+    /**
+     * The time controllers
+     */
+    private TimeControl[] controller;
+    
+    /**
+     * The time for the first round
+     */
+    private final int baseTime = 20000;
+    
+    /**
+     * The time reduced each round
+     */
+    private final int reduce = 2000;
+    
+    /**
+     * Whether the game is over
+     */
+    private boolean over;
+    
+    /**
+     * The number of rounds in a game
+     */
+    private final int numRounds = 10;
+    
+    /**
+     * The current round
+     */
+    private int round;
+    
+    /**
+     * The font being used
+     */
+    private Font font;
+    
+    /**
+     * Whether the ducks are slowed down
+     */
+    private boolean slowDown = false;
+    
+    /**
+     * Whether the ducks are sped up
+     */
+    private boolean speedUp = false;
+    
+    /**
+     * Whether the slow cheat is activated
+     */
+    private boolean cheat = false;
+    
+    /**
+     * Whether the quick cheat is activated
+     */
+    private boolean quick = false;
+    
+    /**
+     * Whether the player can shoot
+     */
+    private boolean canShoot = true;
+    
+    /**
+     * The sprites for the duck
+     */
+    private final Sprite[] duckSprites = {
+    new Sprite("Sprites/Duck/DuckFly1Left.png"),
+    new Sprite("Sprites/Duck/DuckFly2Left.png"),
+    new Sprite("Sprites/Duck/DuckFly1Right.png"),
+    new Sprite("Sprites/Duck/DuckFly2Right.png"),
+    new Sprite("Sprites/Duck/DuckFly1LeftBoom.png"),
+    new Sprite("Sprites/Duck/DuckFly2LeftBoom.png"),
+    new Sprite("Sprites/Duck/DuckFly1RightBoom.png"),
+    new Sprite("Sprites/Duck/DuckFly2RightBoom.png") };
+    
+    /**
+     * The sprite for the crosshair
+     */
+    private final Sprite crossHairSprite = new Sprite(
+                                                      "Sprites/Duck/CrossHairs.png");
+    
+    /**
+     * The constructor which initializes the duck hunting game and sets its
+     * properties
+     *
+     * @param duckAmount
+     *            the amount of ducks to create
+     * @param frame
+     *            the main frame
+     */
+    public DuckPanel(int duckAmount, Frame frame) {
+        // Set all of the properties
+        font = new Font("Century Gothic Bold Italic", Font.BOLD, 20);
+        round = 0;
+        over = false;
+        gameRunner = new PlayerScorer(this, duckAmount);
+        gameFrame = frame;
+        numDucks = duckAmount;
+        duck = new ArrayList<Duck>(20);
+        setSize(XMAX, YMAX);
+        executor = Executors.newCachedThreadPool();
+        controller = new TimeControl[10];
+        
+        // generate a random number to get a random background
+        background = (int) (Math.random() * 6);
+        
+        // Display the correct background
+        if (background == 0) {
+            backgroundImage = new ImageIcon("Sprites/Background/Background.png");
+        } else if (background == 1) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background2.png");
+        } else if (background == 2) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background3.png");
+        } else if (background == 3) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background4.png");
+        } else if (background == 4) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background5.png");
+        } else {
+            backgroundImage = new ImageIcon("Sprites/Background/Background6.png");
+        }
+        
+        // Set up the timers for each round
+        for (int i = 0; i < numRounds; i++)
+            controller[i] = new TimeControl(i, gameRunner, baseTime
+                                            - (reduce * i));
+        
+        // Create the ducks and execute them
+        for (int i = 0; i < numDucks; i++) {
+            duck.add(new Duck(this));
+            executor.execute(duck.get(i));
+        }
+        
+        // Add the mouse event listeners
+        addMouseListener(this);
+        addMouseMotionListener(this);
+        
+        // Position the crosshairs properly and remove the default cursor
+        crossHairPosition = new Dimension(getWidth() / 2, getHeight() / 2);
+        executor.execute(controller[round]);
+        BufferedImage cursor = new BufferedImage(16, 16,
+                                                 BufferedImage.TYPE_INT_ARGB);
+        Cursor blank = Toolkit.getDefaultToolkit().createCustomCursor(cursor,
+                                                                      new Point(0, 0), "Empty Cursor");
+        frame.getContentPane().setCursor(blank);
+    }
+    
+    /**
+     * Paints the JPanel with all of the graphics
+     */
+    public void paintComponent(Graphics g) {
+        
+        // Display the background
+        backgroundImage.paintIcon(this, g, 0, 0);
+        
+        // Display a cheating text
+        if (cheat) {
+            g.setFont(new Font("Century Gothic Bold Italic", Font.BOLD, 35));
+            if (background == 3)
+                g.setColor(Color.blue);
+            else
+                g.setColor(Color.red);
+            
+            g.drawString("You Cheater!", 180, 35);
+            for (Duck d : duck) {
+                d.setXDX(1);
+                d.setYDY(1);
+            }
+        }
+        
+        // Display a hard mode text
+        else if (quick) {
+            g.setFont(new Font("Century Gothic Bold Italic", Font.BOLD, 35));
+            if (background == 3)
+                g.setColor(Color.blue);
+            else
+                g.setColor(Color.red);
+            
+            g.drawString("Dare Devil Mode!", 135, 35);
+            for (Duck d : duck) {
+                d.setXDX(10);
+                d.setYDY(10);
+            }
+        }
+        
+        // Display the status of the game
+        g.setFont(font);
+        if (background < 3)
+            g.setColor(Color.BLACK);
+        else
+            g.setColor(Color.white);
+        g.drawString("Round: " + String.valueOf(round + 1), 10, 25);
+        g.drawString("Score: " + String.valueOf(gameRunner.getScore())
+                     + " Mulitplier: " + String.valueOf(gameRunner.getMultiplier()),
+                     500, 25);
+        g.drawString(
+                     "Bullets Left: " + String.valueOf(gameRunner.getNumBullets()),
+                     600, 575);
+        g.drawString("Timer:" + String.valueOf(controller[round].getTime()),
+                     10, 575);
+        
+        if (!canShoot) {
+            g.drawString("Next Round Starting..", getWidth() / 2 - 100,
+                         getHeight() / 2);
+        }
+        
+        // Loop through all ducks and set their proper animation
+        for (Duck d: duck) {
+            if (d != null) {
+                if (d.alive()) {
+                    if (!d.getXUp()) {
+                        if (d.getCounter() == 0) {
+                            duckSprites[0].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        } else {
+                            duckSprites[1].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        }
+                    } else {
+                        if (d.getCounter() == 1) {
+                            duckSprites[2].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        } else {
+                            duckSprites[3].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        }
+                    }
+                } else {
+                    if (!d.getXUp()) {
+                        if (d.getCounter() == 0) {
+                            duckSprites[4].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        } else {
+                            duckSprites[5].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        }
+                    } else {
+                        if (d.getCounter() == 1) {
+                            duckSprites[6].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        } else {
+                            duckSprites[7].getIcon().paintIcon(this, g,
+                                                               d.getX(), d.getY());
+                        }
+                    }
+                    
+                    // Display the multiplier by their poor dead bodies
+                    if (gameRunner.getMultiplier() >= 1) {
+                        if (background == 3)
+                            g.setColor(Color.blue);
+                        else
+                            g.setColor(Color.red);
+                        g.setFont(new Font("Century Gothic Bold Italic",
+                                           Font.BOLD, 50));
+                        g.drawString("x" + (d.getDeathMultiplier()),
+                                     d.getX(), d.getY());
+                    }
+                }
+            }
+        }
+        
+        // Paint the crosshair
+        crossHairSprite.getIcon().paintIcon(this, g,
+                                            (int) crossHairPosition.getWidth(),
+                                            (int) crossHairPosition.getHeight());
+        BufferedImage cursor = new BufferedImage(16, 16,
+                                                 BufferedImage.TYPE_INT_ARGB);
+        Cursor blank = Toolkit.getDefaultToolkit().createCustomCursor(cursor,
+                                                                      new Point(0, 0), "Empty Cursor");
+        setCursor(blank);
+    }
+    
+    /**
+     * Calls a gunshot for all of the ducks executes the shot
+     *
+     * @param e
+     *            the mouse event that triggered the gunshot
+     */
+    public void gunShot(MouseEvent e) {
+        if (!over) {
+            for (Duck d: duck)
+                d.gunShot(e, gameRunner.getMultiplier());
+            
+            // Update the game scorer
+            gameRunner.shotGun();
+            
+            executor.execute(shot);
+            
+        }
+        
+    }
+    
+    /**
+     * Gets the width of the image
+     *
+     * @param d
+     *            the Duck whose width is retrieved
+     * @return the width
+     */
+    public int getImageWidth(Duck d) {
+        // Make sure to retrieve the appropriate sprite
+        if (!d.getXUp()) {
+            if (d.getCounter() == 0) {
+                return duckSprites[0].getWidth();
+            } else {
+                return duckSprites[1].getWidth();
+            }
+        } else {
+            if (d.getCounter() == 0) {
+                return duckSprites[2].getWidth();
+            } else {
+                return duckSprites[3].getWidth();
+            }
+        }
+    }
+    
+    /**
+     * Gets the height of the image
+     *
+     * @param d
+     *            the Duck whose height is retrieved
+     * @return the height
+     */
+    public int getImageHeight(Duck d) {
+        // Make sure to retrieve the appropriate sprite
+        if (!d.getXUp()) {
+            if (d.getCounter() == 0) {
+                return duckSprites[0].getHeight();
+            } else {
+                return duckSprites[1].getHeight();
+            }
+        } else {
+            if (d.getCounter() == 0) {
+                return duckSprites[2].getHeight();
+            } else {
+                return duckSprites[3].getHeight();
+            }
+        }
+    }
+    
+    /**
+     * Updates the game scorer with information about a duck being hit
+     */
+    public void hitDuck() {
+        gameRunner.hitDuck();
+    }
+    
+    /**
+     * Advances to the next round
+     */
+    public void nextRound() {
+        // Shutdown the threads and execute a new pool
+        executor.shutdown();
+        
+        executor = Executors.newCachedThreadPool();
+        
+        // generate a random number to get a random background
+        background = (int) (Math.random() * 6);
+        
+        // Display the correct background
+        if (background == 0) {
+            backgroundImage = new ImageIcon("Sprites/Background/Background.png");
+        } else if (background == 1) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background2.png");
+        } else if (background == 2) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background3.png");
+        } else if (background == 3) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background4.png");
+        } else if (background == 4) {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background5.png");
+        } else {
+            backgroundImage = new ImageIcon(
+                                            "Sprites/Background/Background6.png");
+        }
+        
+        // Advance the round and launch the new timer
+        round++;
+        executor.execute(controller[round]);
+        
+        duck.clear();
+        
+        // add the new ducks and execute them
+        for (int i = 0; i < numDucks; i++)
+            duck.add(new Duck(this));
+        for (int i = 0; i < numDucks; i++)
+            executor.execute(duck.get(i));
+        
+    }
+    
+    /**
+     * Closes the game and opens the gameover screen
+     */
+    public void gameOver() {
+        gameFrame.closePanels();
+        gameFrame.openGameOver(gameRunner);
+        
+        over = true;
+    }
+    
+    /**
+     * Sets whether the player can shoot
+     */
+    public void setCanShoot(boolean s) {
+        canShoot = s;
+    }
+    
+    /**
+     * Checks for mouse motion to set the crosshairs to the mouse location
+     */
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        crossHairPosition.setSize((int) e.getX() - crossHairSprite.getWidth()
+                                  / 2, (int) e.getY() - crossHairSprite.getHeight() / 2);
+    }
+    
+    /**
+     * Shoots if the mouse is pressed and player can shoot
+     */
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (canShoot) {
+            gunShot(e);
+        }
+        // TODO Auto-generated method stub
+        
+    }
+    
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    @Override
+    public void mouseExited(MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+    
+    /**
+     * Moves the crosshair to the mouse position
+     */
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        crossHairPosition.setSize((int) e.getX() - crossHairSprite.getWidth()
+                                  / 2, (int) e.getY() - crossHairSprite.getHeight() / 2);
+        
+    }
+    
+    /**
+     * Starts and speed up or slow down cheat if the player presses "p" or "o"
+     * 
+     * @param e
+     *            the mouse event
+     */
+    public void cheat(KeyEvent e) {
+        // If the player presses p we want the slow down cheat toggled
+        if (e.getKeyChar() == 'p' || e.getKeyChar() == 'P') {
+            if (!slowDown) {
+                
+                for (Duck d : duck) {
+                    d.setXDX(1);
+                    d.setYDY(1);
+                }
+                quick = false;
+                cheat = true;
+                slowDown = true;
+                speedUp = false;
+            } else if (slowDown) {
+                for (Duck d : duck) {
+                    d.setXDX(5);
+                    d.setYDY(5);
+                }
+                quick = false;
+                cheat = false;
+                slowDown = false;
+                speedUp = false;
+            }
+        }
+        // If the player presses "o" we want the speed up cheat toggled
+        else if (e.getKeyChar() == 'o' || e.getKeyChar() == 'O') {
+            if (!speedUp) {
+                for (Duck d : duck) {
+                    d.setXDX(10);
+                    d.setYDY(10);
+                }
+                cheat = false;
+                quick = true;
+                speedUp = true;
+                slowDown = false;
+            } else if (speedUp) {
+                cheat = false;
+                for (Duck d : duck) {
+                    d.setXDX(5);
+                    d.setYDY(5);
+                }
+                cheat = false;
+                quick = false;
+                speedUp = false;
+                slowDown = false;
+                
+            }
+        }
+        // The other cheat may also need to be toggled
+        
+    }
+}
