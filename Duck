@@ -1,0 +1,241 @@
+import java.awt.event.MouseEvent;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+/**
+ *
+ * Each instance of this class represents a duck. Each duck moves randomly around the screen bouncing off the corners and randomly turning. If the user shoots it, it blows up.
+ *
+ * @author Eli P, Anu B, and Luka Z
+ *
+ */
+public class Duck implements Runnable{
+    /**
+     * Maximum x coordinate on frame
+     */
+    private final int XMAX = 800;
+    /**
+     * Maximum y coordinate on frame
+     */
+    private final int YMAX = 600;
+    /**
+     * x coordinate, y coordinate, the change in x and the change in the y
+     */
+    private int x, y, xDx, yDy;
+    /**
+     * Booleans to indicate whether the clay is still alive and if the x and y are moving
+     * in the positive direction
+     */
+    private boolean xUp, yUp, duckAlive;
+    /**
+     * Counter to change the picture to create animation in the clay pigeon
+     */
+    private int picCounter;
+    /**
+     * Panel that contains this duck, used to indicate if it was shot
+     */
+    private DuckPanel panel;
+    /**
+     * Executor to run sounds
+     */
+    private ExecutorService executor;
+    /**
+     * Boom sound effect
+     */
+    private Sound boom=new Sound("Soundbytes/Boom.wav");
+    /**
+     * Random number used to change the picture of the duck to flap its wings
+     */
+    private final int changeTime = 99;
+    
+    /**
+     * The multiplier score of the dead duck
+     */
+    private int deathMultiplier;
+    
+    /**
+     * Clay pigeon constructor, moves randomly around the screen bouncing off the corners and randomly turning
+     * @param panel
+     */
+    public Duck(DuckPanel panel)
+    {
+        duckAlive = true;
+        executor = Executors.newCachedThreadPool();
+        this.panel = panel;
+        picCounter = 0;
+        
+        x = (int) (Math.random()*(XMAX - panel.getImageWidth(this)));
+        y = (int) (Math.random()*(YMAX - panel.getImageHeight(this)));
+        
+        xDx = 5;
+        yDy = 5;
+        
+        if (x <= 0)
+            xUp = true;
+        else if (x >= XMAX - panel.getImageWidth(this))
+            xUp = false;
+        
+        if (y <= 0)
+            yUp = true;
+        else if (y >= YMAX -  panel.getImageHeight(this))
+            yUp = false;
+        
+    }
+    
+    /**
+     * thread behavior, moves upward while the pigeon is still alive. Moves downward when it's dead.
+     */
+    public void run()
+    {
+        while(duckAlive)
+        {
+            try
+            {
+                Thread.sleep(10);
+            }
+            catch (InterruptedException e)
+            {
+                System.err.println(e);
+            }
+            
+            if (xUp)
+                x = x + xDx;
+            else
+                x = x - xDx;
+            
+            if (yUp)
+                y = y + yDy;
+            else
+                y = y - yDy;
+            
+            if (((int)(Math.random()*100)) == changeTime)
+            {
+                picCounter = (picCounter == 0 ? 1 : 0);
+                
+                if (xUp)
+                    x = x + 3;
+                else
+                    x = x - 3;
+            }
+            
+            if(((int)(Math.random()*100)) == changeTime)
+                xUp = (xUp == false ? true : false);
+            
+            if (x <= 0)
+                xUp = true;
+            else if (x >= XMAX - panel.getImageWidth(this))
+                xUp = false;
+            
+            if (y <= 0)
+                yUp = true;
+            else if (y >= YMAX - panel.getImageHeight(this))
+                yUp = false;
+        }
+        while(!duckAlive)
+        {
+            try
+            {
+                Thread.sleep(10);
+            }
+            catch (InterruptedException e)
+            {
+                System.err.println(e);
+            }
+            y = y + 5;
+            
+        }
+    }
+    
+    /**
+     *
+     * gun was shot, checks whether it hit this object
+     *
+     * @param e mouse event that contains location of click
+     */
+    public void gunShot(MouseEvent e, int multiplier)
+    {
+        if (duckAlive)
+            if ((e.getX() - x > 0 && e.getX() - x < panel.getImageWidth(this)))
+                if((e.getY() - y > 25 && e.getY() - y < panel.getImageHeight(this) + 25 ))
+                {
+                    executor.execute(boom);
+                    duckAlive = false;
+                    deathMultiplier = multiplier;
+                    panel.hitDuck();
+                }
+    }
+    
+    /**
+     * @return the alive status of this clay pigeon
+     */
+    public boolean alive()
+    {
+        return duckAlive;
+    }
+    
+    /**
+     *
+     * @return the x coordinate of the clay pigeon
+     */
+    public int getX()
+    {
+        return x;
+    }
+    
+    /**
+     *
+     * @return the y coordinate of the clay pigeon
+     */
+    public int getY()
+    {
+        return y;
+    }
+    
+    /**
+     *
+     * @return the counter corresponding to which picture is currently displayed
+     */
+    public int getCounter()
+    {
+        return picCounter;
+    }
+    
+    /**
+     *
+     * @return the boolean value of whether the duck is in the positive x direction
+     */
+    public boolean getXUp()
+    {
+        return xUp;
+    }
+    
+    /**
+     *
+     * @return the boolean value of whether the duck is in the positive y direction
+     */
+    public boolean getYUp()
+    {
+        return yUp;
+    }
+    
+    /**
+     *
+     * sets the change in x for cheat
+     */
+    public void setXDX(int x)
+    {
+        xDx = x;
+    }
+    
+    /**
+     * sets the change in y for cheat
+     */
+    public void setYDY(int y)
+    {
+        yDy = y;
+    }
+    
+    public int getDeathMultiplier()
+    {
+        return deathMultiplier;
+    }
+}
