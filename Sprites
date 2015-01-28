@@ -1,0 +1,52 @@
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+
+/**
+ * Sprite class that has properties for the sprite
+ * including its image and dimensions
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+public class Sprite {
+	/**
+	 * The Icon that represents the sprite
+	 */
+	private Icon image;
+
+	/**
+	 * Constructor that loads the image based
+	 * on an image location
+	 * @param imageLocation the place to get the sprite from
+	 */
+	public Sprite(String imageLocation) {
+		image = (Icon) new ImageIcon(imageLocation);
+	}
+	
+	/**
+	 * Gets the icon of the sprite
+	 * @return the image
+	 */
+	public Icon getIcon()
+	{
+		return image;
+	}
+
+	/**
+	 * Gets the height of the sprite
+	 * @return the height
+	 */
+	public int getHeight() 
+	{
+		return image.getIconHeight();
+	}
+
+	/**
+	 * Gets the width of the sprite
+	 * @return the width
+	 */
+	public int getWidth()
+	{
+		return image.getIconWidth();
+	}
+	
+}
