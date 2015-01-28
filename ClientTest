@@ -1,0 +1,20 @@
+import javax.swing.JFrame;
+
+/**
+ * Contains the main class to set up the game for the client
+ * @author Eli P, Anu B, and Luka Z
+ *
+ */
+public class ClientGameTest {
+
+	/**
+	 * The initial execution of the client game
+	 * @param args the arguments of the program (there should be none)
+	 */
+	public static void main(String[] args) {
+		Frame frame = new Frame();
+        frame.setSize( 800, 620);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	}
+
+}
