@@ -1,0 +1,178 @@
+import java.awt.Cursor;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.swing.*;
+/**
+ * Holds all the panels and allows to open up any panel
+ * @author Anu B. Luka Z. Eli P.
+ *
+ */
+@SuppressWarnings("serial")
+public class Frame extends JFrame implements KeyListener {
+	/**
+	 * Panel for game mode duck
+	 */
+    private DuckPanel duckPanel;
+    /**
+	 * Panel for the high score list
+	 */
+    private HighScoresPanel highScoresPanel;
+    /**
+	 * Panel for the main menu
+	 */
+    private MainMenuPanel mainMenuPanel;
+    /**
+     * Number of clay pigeons
+     */
+    private final int numClays = 1;
+    /**
+     * Panel for the selection screen
+     */
+    private SelectionScreenPanel selectionPanel;
+    /**
+     * Panel for clay pigeon game mode
+     */
+    private ClayPanel clayPanel;
+    /**
+     * Panel for the game over screen
+     */
+    private GameOverPanel gameOverPanel;
+    /**
+     * Executor to run a thread
+     */
+    private ExecutorService executor;
+    /**
+     * Timer that will repaint the screen
+     */
+    private FPSTimer repainter;
+    /**
+     * Constructor, initializes the frame that holds the panels and number of ducks or clay pigeons and executes the FPSTimer
+     */
+    public Frame()
+    {
+    	// Set up the GUI
+    	super("Duck Hunt Game");
+        setVisible(true);
+        setSize(800,600);
+        setResizable(false);
+        setCursor(null);
+        
+        // Add KeyListener for cheats
+        addKeyListener(this);
+        
+        // First open high scores then set up the repainter and exexute it
+        openHighScores(false, new String(""), -1);
+        repainter = new FPSTimer(this);
+        executor = Executors.newFixedThreadPool(1);
+        executor.execute(repainter);
+        
+    }
+    /**
+     * Closes all panels and resets the cursor
+     */
+    public void closePanels()
+    {
+    	// Remove every panel and their references
+        getContentPane().removeAll();
+        duckPanel = null;
+        highScoresPanel = null;
+        mainMenuPanel = null;
+        selectionPanel=null;
+        
+        // Set the mouse back to its regular mode
+        getContentPane().setCursor(Cursor.getDefaultCursor());
+        
+    }
+    /**
+     * Opens the duck panel and starts Duck mode
+     * @param numDucks: Number of ducks to be shot
+     */
+    public void openDuck(int numDucks)
+    {
+        duckPanel = new DuckPanel(numDucks, this);
+        add(duckPanel);
+        repaint();
+    }
+    /**
+     * Opens the Clay panel and starts Clay Pigeon mode
+     * @param numClays: Number of clay pigeons to be shot
+     */
+    public void openClay()
+    {
+        clayPanel = new ClayPanel(numClays, this);
+        add(clayPanel);
+    	validate();
+    }
+    /**
+     * Opens the high score screen
+     * @param submittingScore: Tells if a score is being submitted
+     * @param name: Name submitted from ending the game
+     * @param score: Score to be submitted after ending the game
+     */
+    public void openHighScores(boolean submittingScore, String name, int score)
+    {
+        highScoresPanel = new HighScoresPanel(this, submittingScore, name, score);
+        add(highScoresPanel);
+        validate();
+    }
+    /**
+     * Opens the Main Menu
+     */
+    public void openMainMenu()
+    {
+        mainMenuPanel = new MainMenuPanel(this);
+        add(mainMenuPanel);
+        validate();
+    }
+    /**
+     * Opens up the selection screen to choose a game mode
+     */
+    public void openSelection() {
+		selectionPanel = new SelectionScreenPanel(this);
+		add(selectionPanel);
+		validate();
+		
+	}
+    /**
+     * Opens the game over screen
+     * @param game: Player Scorer class which will tell the panel what the final score was
+     */
+    public void openGameOver(PlayerScorer game)
+    {
+    	gameOverPanel=new GameOverPanel(this,game);
+    	add(gameOverPanel);
+    	validate();
+    }
+    /**
+     * Quits the game
+     */
+    public void quitGame()
+    {
+    	this.dispose();
+    }
+	@Override
+	public void keyPressed(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	/**
+	 * Checks for a key typed for cheats
+	 */
+	@Override
+	public void keyTyped(KeyEvent e) {
+		if(duckPanel != null)
+		{
+			duckPanel.cheat(e);
+		}
+		
+	}
+}
