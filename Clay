@@ -1,0 +1,151 @@
+import java.awt.event.MouseEvent;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+/**
+ * 
+ * Each instance of this class represents a clay pigeon. Each pigeon moves from the bottom of the screen and is shot up. If the user shoots it, it blows up.
+ * 
+ * @author Eli P, Anu B, and Luka Z
+ *
+ */
+public class Clay implements Runnable {
+
+	/**
+	 * Maximum x coordinate on frame
+	 */
+	private final int XMAX = 800;
+	/**
+	 * Maximum y coordinate on frame
+	 */
+	private final int YMAX = 600;
+	/**
+	 * x coordinate, y coordinate, and the change in the y 
+	 */
+	private int x, y, yDy;
+	/**
+	 * booleans to indicate whether the clay is still alive and if the y is moving in the positive direction
+	 */
+	private boolean clayAlive;
+	/**
+	 * counter to change the picture to create animation in the clay pigeon
+	 */
+	private int picCounter;
+	/**
+	 * panel that contains this clay pigeon, used to indicate if it was shot
+	 */
+	private ClayPanel panel;
+	/**
+	 * executor to run sounds
+	 */
+	private ExecutorService executor;
+	/**
+	 * boom sound effect
+	 */
+	private Sound boom = new Sound("Soundbytes/Boom.wav");
+	
+	/**
+	 * Edge of starting location for clay pigeon
+	 */
+	private int border = 80;
+
+	/**
+	 * clay pigeon constructor, begins at a random x location and the bottom of the screen. 
+	 * @param panel
+	 */
+	public Clay(ClayPanel panel) {
+		// Create thread pool and set pigeon properties
+		executor = Executors.newCachedThreadPool();
+		this.panel = panel;
+		picCounter = 0;
+		clayAlive = true;
+		x = (int) (Math.random() * (XMAX - border));
+		y = YMAX-border;
+
+		// Clay speed
+		yDy = 4;
+	}
+
+	/**
+	 * thread behavior, moves upward while the pigeon is still alive. Moves downward when it's dead.
+	 */
+	public void run() {
+		while (clayAlive) {
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				System.err.println(e);
+			}
+			
+			// move clay up as it's alive and cycle animations
+			y = y - yDy;
+			if (picCounter == 1)
+				picCounter = 2;
+			else if (picCounter == 2)
+				picCounter = 3;
+			else if (picCounter == 3)
+				picCounter = 4;
+			else
+				picCounter = 1;
+
+		}
+		// Move clay down after it is dead
+		while (!clayAlive) {
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				System.err.println(e);
+			}
+			y += 5;
+		}
+
+	}
+
+	/**
+	 * 
+	 * gun was shot, checks whether it hit this object
+	 * 
+	 * @param e mouse event that contains location of click
+	 */
+	public void gunShot(MouseEvent e) {
+		// Check the bounds
+		if ((e.getX() - x > 0 && e.getX() - x < panel.getImageWidth(this)))
+			if ((e.getY() - y > 25 && e.getY() - y < panel.getImageHeight(this)+25 )) {
+				// Execute the shot and destroy clay
+				executor.execute(boom);
+				clayAlive = false;
+				panel.hitDuck();
+			}
+	}
+
+	/**
+	 * @return the alive status of this clay pigeon
+	 */
+	public boolean alive() {
+		return clayAlive;
+	}
+	
+	/**
+	 * 
+	 * @return the x coordinate of the clay pigeon
+	 */
+	public int getX() {
+		return x;
+	}
+
+	/**
+	 * 
+	 * @return the y coordinate of the clay pigeon
+	 */
+	public int getY() {
+		return y;
+	}
+
+	/**
+	 * 
+	 * @return the counter corresponding to which picture is currently displayed
+	 */
+	public int getCounter() {
+		return picCounter;
+	}
+
+}
