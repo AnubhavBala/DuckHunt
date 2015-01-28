@@ -1,0 +1,24 @@
+import javax.swing.JFrame;
+
+/**
+ * Test class for the Server application
+ * @author Luka Z, Anu B, Eli P
+ *
+ */
+public class DuckHuntServerTest
+{
+	/**
+	 * The initial execution of the program
+	 * @param args the arguments of the program, there should be none
+	 */
+	public static void main(String [] args)
+	{
+		DuckHuntServer server = new DuckHuntServer();
+		server.setSize(300, 300);
+		server.setVisible(true);
+		server.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		// Start the server after setting up the GUI
+		server.startServer();
+	}
+}
